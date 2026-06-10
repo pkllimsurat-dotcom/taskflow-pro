@@ -20,6 +20,12 @@
 
   window._fbSet = (path, data) => set(ref(db, path), data);
   window._fbListen = (path, cb) => onValue(ref(db, path), snap => cb(snap.val()));
+
+  // Fire loadAll after Firebase is ready
+  document.addEventListener('DOMContentLoaded', () => {
+    if(typeof loadAll === 'function') loadAll();
+  });
+  window._firebaseReady = true;
 </script>
 <style>
 *{font-family:'Prompt',sans-serif;box-sizing:border-box;margin:0;padding:0;}
@@ -872,7 +878,18 @@ document.querySelectorAll('.modal-overlay').forEach(m=>{
 });
 document.addEventListener('keydown',e=>{if(e.key==='Escape')document.querySelectorAll('.modal-overlay.open').forEach(m=>m.classList.remove('open'));});
 
-loadAll();
+// Wait for Firebase module to initialize before loading data
+function waitForFirebase(attempts) {
+  if(window._fbListen) {
+    loadAll();
+  } else if(attempts > 0) {
+    setTimeout(() => waitForFirebase(attempts - 1), 200);
+  } else {
+    // Fallback to localStorage if Firebase never loaded
+    loadAll();
+  }
+}
+waitForFirebase(20);
 </script>
 </body>
 </html>
