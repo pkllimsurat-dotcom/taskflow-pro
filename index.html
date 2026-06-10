@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -7,6 +8,19 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css"/>
+<script type="module">
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-database.js";
+
+  const firebaseConfig = {
+    databaseURL: "https://taskflow-pro-5a778-default-rtdb.asia-southeast1.firebasedatabase.app"
+  };
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  window._fbSet = (path, data) => set(ref(db, path), data);
+  window._fbListen = (path, cb) => onValue(ref(db, path), snap => cb(snap.val()));
+</script>
 <style>
 *{font-family:'Prompt',sans-serif;box-sizing:border-box;margin:0;padding:0;}
 :root{
@@ -301,7 +315,7 @@ html,body{height:100%;background:#f0f0f0;}
       <div><div class="page-title">ตั้งค่าระบบ</div><div class="page-sub">จัดการสมาชิก หมวดหมู่ และข้อมูล</div></div>
     </div>
     <div class="settings-body">
-      <div class="sync-bar"><i class="ti ti-info-circle" style="font-size:14px;"></i> ข้อมูลทั้งหมดบันทึกใน localStorage ของเบราว์เซอร์นี้ — แต่ละเครื่องจะมีข้อมูลของตัวเอง ส่งออก/นำเข้าไฟล์เพื่อแชร์กับทีม</div>
+      <div class="sync-bar"><i class="ti ti-info-circle" style="font-size:14px;"></i> ข้อมูลทั้งหมดซิงค์ผ่าน Firebase — ทุกคนที่เปิด URL เดียวกันจะเห็นและแก้ไขข้อมูลร่วมกันได้ทันที</div>
       <div class="settings-grid">
         <div class="settings-panel">
           <div class="settings-title"><i class="ti ti-users"></i> สมาชิกทีม</div>
@@ -417,37 +431,65 @@ let dragTaskId=null;
 let toastTimer=null;
 
 function save(){
-  try{
+  const ss=document.getElementById('save-status');
+  ss.innerHTML='<i class="ti ti-loader" style="font-size:13px;color:#fbbf24;"></i> กำลังบันทึก...';
+  if(window._fbSet){
+    window._fbSet('taskflow', state)
+      .then(()=>{ ss.innerHTML='<i class="ti ti-cloud-check" style="font-size:13px;color:#4ade80;"></i> บันทึกแล้ว'; })
+      .catch(e=>{ console.error(e); ss.innerHTML='<i class="ti ti-cloud-off" style="font-size:13px;color:#f87171;"></i> บันทึกไม่สำเร็จ'; });
+  } else {
     localStorage.setItem('taskflow-pro-v1',JSON.stringify(state));
-    const ss=document.getElementById('save-status');
     ss.innerHTML='<i class="ti ti-cloud-check" style="font-size:13px;color:#4ade80;"></i> บันทึกแล้ว';
-  }catch(e){console.error('Save error',e);}
+  }
 }
 
 function loadAll(){
-  try{
-    const raw=localStorage.getItem('taskflow-pro-v1');
-    if(raw){
-      const d=JSON.parse(raw);
-      state.members=d.members||defaultMembers();
-      state.categories=d.categories||defaultCats();
-      state.tasks=d.tasks||defaultTasks();
-    }else{
+  const ss=document.getElementById('save-status');
+  ss.innerHTML='<i class="ti ti-loader" style="font-size:13px;color:#fbbf24;"></i> กำลังโหลด...';
+  if(window._fbListen){
+    window._fbListen('taskflow', function(data){
+      if(data){
+        state.members=data.members||defaultMembers();
+        state.categories=data.categories||defaultCats();
+        state.tasks=data.tasks||defaultTasks();
+      } else {
+        state.members=defaultMembers();
+        state.categories=defaultCats();
+        state.tasks=defaultTasks();
+        save();
+      }
+      if(!currentUser&&state.members.length>0)currentUser=state.members[0].name;
+      const savedUser=localStorage.getItem('taskflow-current-user');
+      if(savedUser&&state.members.find(m=>m.name===savedUser))currentUser=savedUser;
+      setUserDisplay(currentUser);
+      renderAll();
+      ss.innerHTML='<i class="ti ti-cloud-check" style="font-size:13px;color:#4ade80;"></i> บันทึกแล้ว';
+    });
+  } else {
+    try{
+      const raw=localStorage.getItem('taskflow-pro-v1');
+      if(raw){
+        const d=JSON.parse(raw);
+        state.members=d.members||defaultMembers();
+        state.categories=d.categories||defaultCats();
+        state.tasks=d.tasks||defaultTasks();
+      } else {
+        state.members=defaultMembers();
+        state.categories=defaultCats();
+        state.tasks=defaultTasks();
+        save();
+      }
+    }catch(e){
       state.members=defaultMembers();
       state.categories=defaultCats();
       state.tasks=defaultTasks();
-      save();
     }
-  }catch(e){
-    state.members=defaultMembers();
-    state.categories=defaultCats();
-    state.tasks=defaultTasks();
+    if(!currentUser&&state.members.length>0)currentUser=state.members[0].name;
+    const savedUser=localStorage.getItem('taskflow-current-user');
+    if(savedUser&&state.members.find(m=>m.name===savedUser))currentUser=savedUser;
+    setUserDisplay(currentUser);
+    renderAll();
   }
-  if(!currentUser&&state.members.length>0)currentUser=state.members[0].name;
-  const savedUser=localStorage.getItem('taskflow-current-user');
-  if(savedUser&&state.members.find(m=>m.name===savedUser))currentUser=savedUser;
-  setUserDisplay(currentUser);
-  renderAll();
 }
 
 function defaultMembers(){return[{name:'สมชาย',role:'lead'},{name:'นิดา',role:'member'},{name:'อนุชา',role:'member'}];}
@@ -718,7 +760,7 @@ function openUserSwitch(){
 }
 function setUser(name){
   currentUser=name;
-  localStorage.setItem('taskflow-current-user',name);
+  localStorage.setItem('taskflow-current-user',name); // keep locally per device
   setUserDisplay(name);
   closeModal('modal-user');
   updateMyCnt();
