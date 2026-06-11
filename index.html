@@ -192,6 +192,18 @@ html,body{height:100%;background:#f0f0f0;}
 .filter-select{padding:5px 10px;border:1px solid var(--bdr);border-radius:7px;font-size:11px;font-family:'Prompt',sans-serif;outline:none;cursor:pointer;color:var(--blk);}
 .filter-select:focus{border-color:var(--red);}
 
+
+/* Activity Log */
+.modal-wide{background:var(--wht);border-radius:14px;padding:24px;width:560px;max-height:88vh;overflow-y:auto;}
+.activity-list{display:flex;flex-direction:column;gap:8px;margin-bottom:14px;max-height:280px;overflow-y:auto;padding-right:4px;}
+.activity-item{background:var(--gray-l);border-radius:8px;padding:10px 12px;border-left:3px solid var(--red);}
+.activity-meta{font-size:10px;color:var(--gray);margin-bottom:4px;display:flex;align-items:center;gap:6px;}
+.activity-text{font-size:12px;color:var(--blk);line-height:1.5;}
+.activity-progress{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:600;color:var(--red);background:var(--red-l);padding:2px 7px;border-radius:8px;}
+.activity-empty{font-size:12px;color:var(--gray);text-align:center;padding:20px 0;}
+.add-activity-box{background:var(--gray-l);border-radius:10px;padding:14px;}
+.add-activity-title{font-size:12px;font-weight:600;color:var(--blk);margin-bottom:10px;}
+
 @media(max-width:768px){
   .kpi-row{grid-template-columns:repeat(2,1fr);}
   .dash-grid{grid-template-columns:1fr;}
@@ -419,6 +431,66 @@ html,body{height:100%;background:#f0f0f0;}
   </div>
 </div>
 
+
+<!-- MODAL: Activity Log -->
+<div class="modal-overlay" id="modal-activity">
+  <div class="modal-wide">
+    <div class="modal-title">
+      <div>
+        <div id="activity-task-name" style="font-size:15px;font-weight:600;color:var(--blk);"></div>
+        <div id="activity-task-meta" style="font-size:11px;color:var(--gray);margin-top:2px;"></div>
+      </div>
+      <button class="modal-close" onclick="closeModal('modal-activity')">×</button>
+    </div>
+    <input type="hidden" id="activity-task-id"/>
+
+    <!-- Progress bar -->
+    <div style="background:var(--gray-l);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+        <span style="font-size:12px;font-weight:500;color:var(--blk);">ความคืบหน้า</span>
+        <span id="activity-prog-display" style="font-size:13px;font-weight:600;color:var(--red);">0%</span>
+      </div>
+      <div style="height:6px;background:var(--gray-m);border-radius:3px;overflow:hidden;">
+        <div id="activity-prog-bar" style="height:100%;border-radius:3px;background:var(--red);transition:width .3s;width:0%"></div>
+      </div>
+    </div>
+
+    <!-- Activity log list -->
+    <div style="font-size:12px;font-weight:600;color:var(--blk);margin-bottom:8px;">บันทึกความคืบหน้า</div>
+    <div class="activity-list" id="activity-list">
+      <div class="activity-empty">ยังไม่มีการอัปเดต</div>
+    </div>
+
+    <!-- Add new update -->
+    <div class="add-activity-box">
+      <div class="add-activity-title"><i class="ti ti-plus" style="color:var(--red);"></i> เพิ่มอัปเดต</div>
+      <div class="fg">
+        <label class="fl">ทำไปแล้ว / สถานะ / ติดปัญหา</label>
+        <textarea class="fi" id="activity-text" rows="3" placeholder="เช่น: ทำ design เสร็จแล้ว 2 หน้า กำลังทำหน้า landing / ติดเรื่อง API ยังไม่ได้ข้อมูลจากทีม..." style="resize:vertical;"></textarea>
+      </div>
+      <div class="fi-row" style="margin-bottom:10px;">
+        <div class="fg" style="margin-bottom:0;">
+          <label class="fl">อัปเดตความคืบหน้า (%)</label>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <input type="range" min="0" max="100" step="5" class="prog-slider" id="activity-prog-input" oninput="updateActivityProgDisplay(this.value)" style="flex:1;"/>
+            <span id="activity-prog-val" style="font-size:13px;font-weight:600;color:var(--red);min-width:36px;text-align:right;">0%</span>
+          </div>
+        </div>
+        <div class="fg" style="margin-bottom:0;">
+          <label class="fl">อัปเดตโดย</label>
+          <select class="fi" id="activity-by"></select>
+        </div>
+      </div>
+      <button class="btn-red" onclick="saveActivity()"><i class="ti ti-send"></i> บันทึกอัปเดต</button>
+    </div>
+
+    <div class="modal-2btn" style="margin-top:10px;">
+      <button class="btn-cancel" onclick="closeModal('modal-activity')">ปิด</button>
+      <button class="btn-sm btn-red-sm" onclick="closeModal('modal-activity');openEditTask(document.getElementById('activity-task-id').value)"><i class="ti ti-edit"></i> แก้ไขงาน</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><i class="ti ti-check" style="font-size:14px;color:#4ade80;"></i><span id="toast-msg"></span></div>
 
 <script>
@@ -638,9 +710,17 @@ function makeCard(t){
     <div class="tc-footer">
       <div class="tc-date${late?' late':''}"><i class="ti ti-calendar" style="font-size:10px;"></i> ${fmtDate(t.due)}${late?' ⚠':''}
       </div>
-      <div class="tc-av" style="background:${getColor(t.assignee)}" title="${t.assignee}">${initials(t.assignee)}</div>
+      <div style="display:flex;align-items:center;gap:4px;">
+        <div class="tc-av" style="background:${getColor(t.assignee)}" title="${t.assignee}">${initials(t.assignee)}</div>
+      </div>
     </div>
-    ${t.progress>0?`<div class="tc-progress"><div class="tc-prog-row"><span class="tc-prog-lbl">คืบหน้า</span><span class="tc-prog-pct">${t.progress}%</span></div><div class="tc-bar"><div class="tc-bar-fill" style="width:${t.progress}%"></div></div></div>`:''}`;
+    ${t.progress>0?`<div class="tc-progress"><div class="tc-prog-row"><span class="tc-prog-lbl">คืบหน้า</span><span class="tc-prog-pct">${t.progress}%</span></div><div class="tc-bar"><div class="tc-bar-fill" style="width:${t.progress}%"></div></div></div>`:''}
+    <div style="margin-top:8px;border-top:1px solid var(--bdr);padding-top:7px;display:flex;align-items:center;justify-content:space-between;">
+      <span style="font-size:10px;color:var(--gray);">${(t.activities&&t.activities.length>0)?t.activities.length+' อัปเดต':'ยังไม่มีอัปเดต'}</span>
+      <button onclick="event.stopPropagation();openActivity('${t.id}')" style="display:flex;align-items:center;gap:4px;border:1px solid var(--red);background:var(--red-l);color:var(--red);border-radius:6px;padding:3px 9px;font-size:10px;font-weight:500;cursor:pointer;font-family:'Prompt',sans-serif;">
+        <i class="ti ti-plus" style="font-size:11px;"></i> อัปเดต
+      </button>
+    </div>`;
   return el;
 }
 
@@ -863,6 +943,82 @@ function importData(e){
   };
   reader.readAsText(file);
   e.target.value='';
+}
+
+
+function openActivity(id){
+  const t=state.tasks.find(x=>x.id===id);
+  if(!t)return;
+  document.getElementById('activity-task-id').value=id;
+  document.getElementById('activity-task-name').textContent=t.name;
+  document.getElementById('activity-task-meta').textContent=(t.assignee||'')+(t.category?' · '+t.category:'')+(t.due?' · กำหนด '+fmtDate(t.due):'');
+  // set progress
+  const prog=t.progress||0;
+  document.getElementById('activity-prog-input').value=prog;
+  document.getElementById('activity-prog-val').textContent=prog+'%';
+  document.getElementById('activity-prog-display').textContent=prog+'%';
+  document.getElementById('activity-prog-bar').style.width=prog+'%';
+  // populate by selector
+  const sel=document.getElementById('activity-by');
+  sel.innerHTML=state.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  const ci=state.members.findIndex(m=>m.name===currentUser);
+  if(ci>=0)sel.selectedIndex=ci;
+  // clear input
+  document.getElementById('activity-text').value='';
+  // render activities
+  renderActivityList(t);
+  document.getElementById('modal-activity').classList.add('open');
+  setTimeout(()=>document.getElementById('activity-text').focus(),100);
+}
+
+function renderActivityList(t){
+  const el=document.getElementById('activity-list');
+  const acts=t.activities||[];
+  if(acts.length===0){
+    el.innerHTML='<div class="activity-empty">ยังไม่มีการอัปเดต กด "+ อัปเดต" เพื่อบันทึกความคืบหน้าครับ</div>';
+    return;
+  }
+  el.innerHTML=[...acts].reverse().map(a=>`
+    <div class="activity-item">
+      <div class="activity-meta">
+        <div style="width:18px;height:18px;border-radius:50%;background:${getColor(a.by)};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;color:#fff;">${initials(a.by)}</div>
+        <span style="font-weight:500;color:var(--blk);">${a.by}</span>
+        <span>·</span>
+        <span>${a.date} ${a.time}</span>
+        ${a.progress!=null?`<span class="activity-progress"><i class="ti ti-trending-up" style="font-size:10px;"></i> ${a.progress}%</span>`:''}
+      </div>
+      <div class="activity-text">${a.text.replace(/
+/g,'<br>')}</div>
+    </div>`).join('');
+}
+
+function updateActivityProgDisplay(val){
+  document.getElementById('activity-prog-val').textContent=val+'%';
+  document.getElementById('activity-prog-display').textContent=val+'%';
+  document.getElementById('activity-prog-bar').style.width=val+'%';
+}
+
+function saveActivity(){
+  const id=document.getElementById('activity-task-id').value;
+  const text=document.getElementById('activity-text').value.trim();
+  if(!text){showToast('กรุณาใส่ข้อความอัปเดต');return;}
+  const t=state.tasks.find(x=>x.id===id);
+  if(!t)return;
+  const prog=parseInt(document.getElementById('activity-prog-input').value)||0;
+  const by=document.getElementById('activity-by').value;
+  const now=new Date();
+  const date=now.toLocaleDateString('th-TH',{day:'numeric',month:'short',year:'2-digit'});
+  const time=now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit'});
+  if(!t.activities)t.activities=[];
+  t.activities.push({text,progress:prog,by,date,time});
+  t.progress=prog;
+  if(prog===100)t.status='done';
+  save();
+  renderActivityList(t);
+  renderKanban();
+  renderDashboard();
+  document.getElementById('activity-text').value='';
+  showToast('บันทึกอัปเดตแล้ว');
 }
 
 function showToast(msg){
