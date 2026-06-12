@@ -507,6 +507,8 @@ let state={members:[],categories:[],tasks:[]};
 let currentUser='';
 let dragTaskId=null;
 let toastTimer=null;
+let _activeFilterMember='';
+let _activeFilterPriority='';
 
 function save(){
   const ss=document.getElementById('save-status');
@@ -662,8 +664,13 @@ function renderDashboard(){
 }
 
 function renderKanban(){
-  const filterM=document.getElementById('filter-member')?.value||'';
-  const filterP=document.getElementById('filter-priority')?.value||'';
+  // sync persistent vars from dropdown if changed by user
+  const fmEl=document.getElementById('filter-member');
+  const fpEl=document.getElementById('filter-priority');
+  if(fmEl&&fmEl.value!==undefined)_activeFilterMember=fmEl.value;
+  if(fpEl&&fpEl.value!==undefined)_activeFilterPriority=fpEl.value;
+  const filterM=_activeFilterMember;
+  const filterP=_activeFilterPriority;
   const board=document.getElementById('kanban-board');
   board.innerHTML='';
   COLS.forEach(col=>{
@@ -750,20 +757,11 @@ function onDrop(e,status){
   if(status==='done'&&task.progress<100)task.progress=100;
   if(status==='todo')task.progress=0;
   dragTaskId=null;
-  // เก็บค่า filter ก่อน save (save อาจ trigger renderAll)
-  const _fm=document.getElementById('filter-member')?.value||'';
-  const _fp=document.getElementById('filter-priority')?.value||'';
+  // filter vars are already stored in _activeFilterMember/_activeFilterPriority
   save();
-  // restore filter หลัง save แล้ว render
-  setTimeout(()=>{
-    const fm=document.getElementById('filter-member');
-    const fp=document.getElementById('filter-priority');
-    if(fm)fm.value=_fm;
-    if(fp)fp.value=_fp;
-    renderKanban();
-    renderDashboard();
-    updateMyCnt();
-  },50);
+  renderKanban();
+  renderDashboard();
+  updateMyCnt();
   showToast('ย้ายงานไปยัง "'+COLS.find(c=>c.id===status).label+'" แล้ว');
 }
 
@@ -771,9 +769,14 @@ function populateSelects(){
   const as=document.getElementById('t-assign');
   const ca=document.getElementById('t-cat');
   const fm=document.getElementById('filter-member');
+  const fp=document.getElementById('filter-priority');
   if(as)as.innerHTML=state.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
   if(ca)ca.innerHTML=state.categories.map(c=>`<option value="${c}">${c}</option>`).join('');
-  if(fm)fm.innerHTML='<option value="">ทีมทั้งหมด</option>'+state.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+  if(fm){
+    fm.innerHTML='<option value="">ทีมทั้งหมด</option>'+state.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
+    fm.value=_activeFilterMember; // restore filter
+  }
+  if(fp)fp.value=_activeFilterPriority; // restore priority filter
 }
 
 function openAddTask(){
@@ -863,6 +866,7 @@ function setUser(name){
 }
 
 function filterMember(name){
+  _activeFilterMember=name;
   goView('kanban',null);
   setTimeout(()=>{
     const fm=document.getElementById('filter-member');
