@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -750,6 +751,11 @@ function onDrop(e,status){
   if(status==='todo')task.progress=0;
   dragTaskId=null;
   save();
+  const _fm=document.getElementById('filter-member')?.value||'';
+  const _fp=document.getElementById('filter-priority')?.value||'';
+  renderKanban();
+  if(document.getElementById('filter-member'))document.getElementById('filter-member').value=_fm;
+  if(document.getElementById('filter-priority'))document.getElementById('filter-priority').value=_fp;
   renderKanban();
   renderDashboard();
   updateMyCnt();
@@ -1005,8 +1011,11 @@ function openActivity(id){
   document.getElementById('activity-prog-bar').style.width=prog+'%';
   const sel=document.getElementById('activity-by');
   sel.innerHTML=state.members.map(m=>`<option value="${m.name}">${m.name}</option>`).join('');
-  const ci=state.members.findIndex(m=>m.name===currentUser);
-  if(ci>=0)sel.selectedIndex=ci;
+  // default to task assignee, fallback to currentUser
+  const assigneeName = t.assignee || currentUser;
+  const ai=state.members.findIndex(m=>m.name===assigneeName);
+  if(ai>=0)sel.selectedIndex=ai;
+  else{const ci=state.members.findIndex(m=>m.name===currentUser);if(ci>=0)sel.selectedIndex=ci;}
   document.getElementById('activity-text').value='';
   renderActivityList(t);
   document.getElementById('modal-activity').classList.add('open');
