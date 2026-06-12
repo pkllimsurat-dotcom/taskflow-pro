@@ -750,15 +750,20 @@ function onDrop(e,status){
   if(status==='done'&&task.progress<100)task.progress=100;
   if(status==='todo')task.progress=0;
   dragTaskId=null;
-  save();
+  // เก็บค่า filter ก่อน save (save อาจ trigger renderAll)
   const _fm=document.getElementById('filter-member')?.value||'';
   const _fp=document.getElementById('filter-priority')?.value||'';
-  renderKanban();
-  if(document.getElementById('filter-member'))document.getElementById('filter-member').value=_fm;
-  if(document.getElementById('filter-priority'))document.getElementById('filter-priority').value=_fp;
-  renderKanban();
-  renderDashboard();
-  updateMyCnt();
+  save();
+  // restore filter หลัง save แล้ว render
+  setTimeout(()=>{
+    const fm=document.getElementById('filter-member');
+    const fp=document.getElementById('filter-priority');
+    if(fm)fm.value=_fm;
+    if(fp)fp.value=_fp;
+    renderKanban();
+    renderDashboard();
+    updateMyCnt();
+  },50);
   showToast('ย้ายงานไปยัง "'+COLS.find(c=>c.id===status).label+'" แล้ว');
 }
 
