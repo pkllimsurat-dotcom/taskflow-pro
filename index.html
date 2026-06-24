@@ -600,7 +600,7 @@ const COLS=[
 const PRI_COLOR={high:'#dc2626',mid:'#d97706',low:'#22c55e'};
 const MEMBER_COLORS=['#DA291C','#76777B','#1a1a1a','#2563eb','#7c3aed','#059669','#c026d3','#0891b2'];
 
-let state={members:[],categories:[],tasks:[]};
+let state={members:[],categories:[],tasks:[],timebox:{}};
 let currentUser='';
 let dragTaskId=null;
 let toastTimer=null;
@@ -629,10 +629,12 @@ function loadAll(){
         state.members=data.members||defaultMembers();
         state.categories=data.categories||defaultCats();
         state.tasks=data.tasks||defaultTasks();
+        state.timebox=data.timebox||{};
       } else {
         state.members=defaultMembers();
         state.categories=defaultCats();
         state.tasks=defaultTasks();
+        state.timebox={};
         save();
       }
       if(!currentUser&&state.members.length>0)currentUser=state.members[0].name;
@@ -650,10 +652,12 @@ function loadAll(){
         state.members=d.members||defaultMembers();
         state.categories=d.categories||defaultCats();
         state.tasks=d.tasks||defaultTasks();
+        state.timebox=d.timebox||{};
       } else {
         state.members=defaultMembers();
         state.categories=defaultCats();
         state.tasks=defaultTasks();
+        state.timebox={};
         save();
       }
     }catch(e){
