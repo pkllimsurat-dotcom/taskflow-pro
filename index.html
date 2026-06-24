@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
@@ -216,6 +215,37 @@ html,body{height:100%;background:#f0f0f0;}
 .add-activity-box{background:var(--gray-l);border-radius:10px;padding:14px;}
 .add-activity-title{font-size:12px;font-weight:600;color:var(--blk);margin-bottom:10px;display:flex;align-items:center;gap:6px;}
 
+
+/* Timeboxing */
+.tb-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+.tb-date-nav{display:flex;align-items:center;gap:6px;}
+.tb-date-btn{width:30px;height:30px;border-radius:7px;border:1px solid var(--bdr);background:var(--wht);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--blk);font-size:14px;}
+.tb-date-btn:hover{background:var(--gray-l);}
+.tb-date-label{font-size:13px;font-weight:600;color:var(--blk);min-width:150px;text-align:center;}
+.tb-grid-wrap{flex:1;overflow:auto;padding:0 24px 24px;}
+.tb-grid{display:grid;border:1px solid var(--bdr);border-radius:12px;overflow:hidden;background:var(--wht);min-width:900px;}
+.tb-row{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--bdr);}
+.tb-row:last-child{border-bottom:none;}
+.tb-row.tb-header{background:var(--gray-l);position:sticky;top:0;z-index:5;}
+.tb-time-col{padding:10px 12px;font-size:11px;font-weight:600;color:var(--gray);border-right:1px solid var(--bdr);display:flex;align-items:center;background:var(--gray-l);}
+.tb-members-row{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;}
+.tb-member-col-hdr{padding:10px 8px;display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--blk);border-right:1px solid var(--bdr);justify-content:center;}
+.tb-member-col-hdr:last-child{border-right:none;}
+.tb-slot-row{display:grid;grid-template-columns:140px 1fr;border-bottom:1px solid var(--bdr);height:54px;}
+.tb-slot-row:last-child{border-bottom:none;}
+.tb-slots{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;min-width:0;}
+.tb-slot-cell{border-right:1px solid var(--bdr);padding:4px;display:flex;align-items:stretch;min-width:0;overflow:hidden;}
+.tb-slot-cell:last-child{border-right:none;}
+.tb-block{flex:1;border-radius:7px;padding:6px 8px;font-size:11px;cursor:pointer;display:flex;flex-direction:column;justify-content:center;transition:opacity .15s;min-height:44px;max-height:44px;overflow:hidden;min-width:0;}
+.tb-block:hover{opacity:.85;}
+.tb-block-empty{flex:1;border-radius:7px;border:1.5px dashed var(--gray-m);cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--gray-m);font-size:16px;transition:all .15s;min-height:44px;max-height:44px;}
+.tb-block-empty:hover{border-color:var(--red);color:var(--red);background:var(--red-l);}
+.tb-block-title{font-weight:600;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;min-width:0;}
+.tb-block-sub{font-size:9px;opacity:.8;margin-top:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%;}
+.tb-legend{display:flex;gap:14px;padding:10px 24px;font-size:11px;color:var(--gray);align-items:center;flex-wrap:wrap;}
+.tb-legend-item{display:flex;align-items:center;gap:5px;}
+.tb-legend-dot{width:9px;height:9px;border-radius:3px;}
+
 @media(max-width:768px){
   .kpi-row{grid-template-columns:repeat(2,1fr);}
   .dash-grid{grid-template-columns:1fr;}
@@ -234,6 +264,7 @@ html,body{height:100%;background:#f0f0f0;}
   <div class="nav-tabs">
     <button class="ntab active" onclick="goView('dashboard',this)">Dashboard</button>
     <button class="ntab" onclick="goView('kanban',this)">Kanban</button>
+    <button class="ntab" onclick="goView('timebox',this)">Timeboxing</button>
     <button class="ntab" onclick="goView('settings',this)">ตั้งค่า</button>
   </div>
   <div class="topbar-right">
@@ -256,6 +287,9 @@ html,body{height:100%;background:#f0f0f0;}
     </button>
     <button class="sb-item" onclick="goView('kanban',null);setSbActive(this)">
       <i class="ti ti-layout-kanban"></i> Kanban Board
+    </button>
+    <button class="sb-item" onclick="goView('timebox',null);setSbActive(this)">
+      <i class="ti ti-clock-hour-4"></i> Timeboxing
     </button>
     <button class="sb-item" onclick="filterMy();setSbActive(this)">
       <i class="ti ti-user-check"></i> งานของฉัน
@@ -336,6 +370,36 @@ html,body{height:100%;background:#f0f0f0;}
     </div>
     <div class="kanban-wrap">
       <div class="kanban-board" id="kanban-board"></div>
+    </div>
+  </div>
+
+
+  <!-- TIMEBOXING VIEW -->
+  <div id="view-timebox" style="display:none;flex-direction:column;flex:1;">
+    <div class="page-hdr">
+      <div>
+        <div class="page-title">Timeboxing ประจำวัน</div>
+        <div class="page-sub">ล็อกช่วงเวลาโฟกัสของแต่ละคน ทีมเห็นพร้อมกัน</div>
+      </div>
+      <div class="hdr-acts tb-toolbar">
+        <div class="tb-date-nav">
+          <button class="tb-date-btn" onclick="tbChangeDay(-1)" title="วันก่อนหน้า"><i class="ti ti-chevron-left"></i></button>
+          <span class="tb-date-label" id="tb-date-label">วันนี้</span>
+          <button class="tb-date-btn" onclick="tbChangeDay(1)" title="วันถัดไป"><i class="ti ti-chevron-right"></i></button>
+          <button class="btn-sm" onclick="tbGoToday()" style="margin-left:4px;">วันนี้</button>
+        </div>
+      </div>
+    </div>
+    <div class="tb-legend">
+      <span style="font-weight:500;color:var(--blk);">หมวดหมู่:</span>
+      <span class="tb-legend-item"><span class="tb-legend-dot" style="background:#DA291C"></span>Deep Work</span>
+      <span class="tb-legend-item"><span class="tb-legend-dot" style="background:#2563eb"></span>ประชุม</span>
+      <span class="tb-legend-item"><span class="tb-legend-dot" style="background:#d97706"></span>งานเอกสาร/แอดมิน</span>
+      <span class="tb-legend-item"><span class="tb-legend-dot" style="background:#059669"></span>พักเบรก</span>
+      <span class="tb-legend-item"><span class="tb-legend-dot" style="background:#76777B"></span>อื่นๆ</span>
+    </div>
+    <div class="tb-grid-wrap">
+      <div class="tb-grid" id="tb-grid"></div>
     </div>
   </div>
 
@@ -491,6 +555,39 @@ html,body{height:100%;background:#f0f0f0;}
   </div>
 </div>
 
+
+<!-- MODAL: Timebox Slot -->
+<div class="modal-overlay" id="modal-timebox">
+  <div class="modal">
+    <div class="modal-title"><span id="tb-modal-title">จองเวลา</span><button class="modal-close" onclick="closeModal('modal-timebox')">×</button></div>
+    <input type="hidden" id="tb-edit-key"/>
+    <input type="hidden" id="tb-date-key"/>
+    <input type="hidden" id="tb-person-key"/>
+    <div class="fg"><label class="fl">บุคคล / วันที่</label><input class="fi" id="tb-person-display" readonly style="background:var(--gray-l);"/></div>
+    <div class="fi-row">
+      <div class="fg"><label class="fl">เวลาเริ่ม</label><select class="fi" id="tb-start-time"></select></div>
+      <div class="fg"><label class="fl">เวลาสิ้นสุด</label><select class="fi" id="tb-end-time"></select></div>
+    </div>
+    <div class="fg"><label class="fl">หัวข้อที่โฟกัส *</label><input class="fi" id="tb-title" placeholder="เช่น ทำสไลด์ลูกค้า A, ประชุมทีม Marketing..."/></div>
+    <div class="fg"><label class="fl">หมวดหมู่</label>
+      <select class="fi" id="tb-category">
+        <option value="deep" style="color:#DA291C;">🔴 Deep Work</option>
+        <option value="meeting" style="color:#2563eb;">🔵 ประชุม</option>
+        <option value="admin" style="color:#d97706;">🟠 งานเอกสาร/แอดมิน</option>
+        <option value="break" style="color:#059669;">🟢 พักเบรก</option>
+        <option value="other" style="color:#76777B;">⚪ อื่นๆ</option>
+      </select>
+    </div>
+    <div class="modal-2btn">
+      <button class="btn-cancel" onclick="closeModal('modal-timebox')">ยกเลิก</button>
+      <button class="btn-red" onclick="tbSaveSlot()"><i class="ti ti-check"></i> บันทึก</button>
+    </div>
+    <div id="tb-delete-wrap" style="margin-top:8px;display:none;">
+      <button class="delete-task-btn" style="width:100%;justify-content:center;" onclick="tbDeleteSlot()"><i class="ti ti-trash"></i> ลบการจองนี้</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast" id="toast"><i class="ti ti-check" style="font-size:14px;color:#4ade80;"></i><span id="toast-msg"></span></div>
 
 <script>
@@ -606,6 +703,8 @@ function renderAll(){
   updateMyCnt();
   updateDashSub();
   populateSelects();
+  const tbView=document.getElementById('view-timebox');
+  if(tbView&&tbView.style.display==='flex')renderTimebox();
 }
 
 function setSbActive(el){
@@ -884,14 +983,15 @@ function filterStatus(s){
 }
 
 function goView(view,btn){
-  ['dashboard','kanban','settings'].forEach(v=>{
+  ['dashboard','kanban','timebox','settings'].forEach(v=>{
     const el=document.getElementById('view-'+v);
     if(el)el.style.display=v===view?'flex':'none';
     if(el&&v===view){el.style.flexDirection='column';el.style.flex='1';}
   });
   document.querySelectorAll('.ntab').forEach(t=>t.classList.remove('active'));
   if(btn)btn.classList.add('active');
-  else{const m={'dashboard':0,'kanban':1,'settings':2};const tabs=document.querySelectorAll('.ntab');if(tabs[m[view]])tabs[m[view]].classList.add('active');}
+  else{const m={'dashboard':0,'kanban':1,'timebox':2,'settings':3};const tabs=document.querySelectorAll('.ntab');if(tabs[m[view]])tabs[m[view]].classList.add('active');}
+  if(view==='timebox')renderTimebox();
 }
 
 function renderSettings(){
@@ -1067,6 +1167,177 @@ function saveActivity(){
   save();renderActivityList(t);renderKanban();renderDashboard();
   document.getElementById('activity-text').value='';
   showToast('บันทึกอัปเดตแล้ว');
+}
+
+
+// ===== TIMEBOXING =====
+const TB_SLOTS=['08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','13:30','14:00','14:30','15:00','15:30','16:00','16:30','17:00','17:30','18:00'];
+const TB_CAT_COLOR={deep:'#DA291C',meeting:'#2563eb',admin:'#d97706',break:'#059669',other:'#76777B'};
+const TB_CAT_LABEL={deep:'Deep Work',meeting:'ประชุม',admin:'แอดมิน',break:'พักเบรก',other:'อื่นๆ'};
+let tbCurrentDate=new Date();
+
+function tbDateKey(d){
+  const x=new Date(d);
+  return x.getFullYear()+'-'+String(x.getMonth()+1).padStart(2,'0')+'-'+String(x.getDate()).padStart(2,'0');
+}
+function tbChangeDay(delta){
+  tbCurrentDate.setDate(tbCurrentDate.getDate()+delta);
+  renderTimebox();
+}
+function tbGoToday(){
+  tbCurrentDate=new Date();
+  renderTimebox();
+}
+function tbDateLabel(d){
+  const today=new Date();
+  const key=tbDateKey(d);
+  const todayKey=tbDateKey(today);
+  const tmr=new Date(today);tmr.setDate(tmr.getDate()+1);
+  const yst=new Date(today);yst.setDate(yst.getDate()-1);
+  let prefix='';
+  if(key===todayKey)prefix='วันนี้ · ';
+  else if(key===tbDateKey(tmr))prefix='พรุ่งนี้ · ';
+  else if(key===tbDateKey(yst))prefix='เมื่อวาน · ';
+  return prefix+d.toLocaleDateString('th-TH',{weekday:'short',day:'numeric',month:'short',year:'numeric'});
+}
+function tbMinutes(t){const[h,m]=t.split(':').map(Number);return h*60+m;}
+
+// state.timebox[dateKey][person] = [{start,end,title,category}, ...]
+function tbGetEntries(dateKey,person){
+  if(!state.timebox)return[];
+  if(!state.timebox[dateKey])return[];
+  return state.timebox[dateKey][person]||[];
+}
+function tbFindEntryAt(dateKey,person,time){
+  const entries=tbGetEntries(dateKey,person);
+  const m=tbMinutes(time);
+  return entries.find(e=>m>=tbMinutes(e.start)&&m<tbMinutes(e.end));
+}
+
+function renderTimebox(){
+  document.getElementById('tb-date-label').textContent=tbDateLabel(tbCurrentDate);
+  const dateKey=tbDateKey(tbCurrentDate);
+  const grid=document.getElementById('tb-grid');
+  if(!grid)return;
+
+  let html=`<div class="tb-row tb-header">
+    <div class="tb-time-col">เวลา</div>
+    <div class="tb-members-row">
+      ${state.members.map(m=>`<div class="tb-member-col-hdr">
+        <div style="width:18px;height:18px;border-radius:50%;background:${getColor(m.name)};display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:600;color:#fff;flex-shrink:0;">${initials(m.name)}</div>
+        ${m.name}
+      </div>`).join('')}
+    </div>
+  </div>`;
+
+  TB_SLOTS.forEach((time)=>{
+    html+=`<div class="tb-slot-row">
+      <div class="tb-time-col">${time}</div>
+      <div class="tb-slots">
+        ${state.members.map(m=>{
+          const entry=tbFindEntryAt(dateKey,m.name,time);
+          if(!entry){
+            return `<div class="tb-slot-cell"><div class="tb-block-empty" onclick="tbOpenSlot('${dateKey}','${m.name}','${time}')"><i class="ti ti-plus"></i></div></div>`;
+          }
+          const isFirstSlot = tbMinutes(entry.start)===tbMinutes(time);
+          const color=TB_CAT_COLOR[entry.category]||'#76777B';
+          if(isFirstSlot){
+            return `<div class="tb-slot-cell">
+              <div class="tb-block" style="background:${color}18;border-left:3px solid ${color};color:${color};" onclick="tbOpenSlot('${dateKey}','${m.name}','${time}')" title="${entry.start}-${entry.end} ${entry.title}">
+                <div class="tb-block-title" style="color:var(--blk);">${entry.title}</div>
+                <div class="tb-block-sub" style="color:${color};">${entry.start}–${entry.end} · ${TB_CAT_LABEL[entry.category]||''}</div>
+              </div>
+            </div>`;
+          } else {
+            return `<div class="tb-slot-cell" style="padding:4px;">
+              <div style="flex:1;background:${color}10;border-left:3px solid ${color};border-radius:7px;cursor:pointer;min-height:44px;max-height:44px;" onclick="tbOpenSlot('${dateKey}','${m.name}','${entry.start}')" title="${entry.title} (${entry.start}-${entry.end})"></div>
+            </div>`;
+          }
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  grid.innerHTML=html;
+}
+
+function tbPopulateTimeSelects(selectedStart,selectedEnd){
+  const startSel=document.getElementById('tb-start-time');
+  const endSel=document.getElementById('tb-end-time');
+  startSel.innerHTML=TB_SLOTS.map(t=>`<option value="${t}">${t}</option>`).join('');
+  const endOptions=[...TB_SLOTS.slice(1),'18:30'];
+  endSel.innerHTML=endOptions.map(t=>`<option value="${t}">${t}</option>`).join('');
+  startSel.value=selectedStart||TB_SLOTS[0];
+  endSel.value=selectedEnd||endOptions[0];
+}
+
+function tbOpenSlot(dateKey,person,time){
+  document.getElementById('tb-date-key').value=dateKey;
+  document.getElementById('tb-person-key').value=person;
+  document.getElementById('tb-person-display').value=person+' · '+new Date(dateKey+'T00:00:00').toLocaleDateString('th-TH',{day:'numeric',month:'short'});
+
+  const entry=tbFindEntryAt(dateKey,person,time);
+  if(entry){
+    document.getElementById('tb-modal-title').textContent='แก้ไขการจองเวลา';
+    document.getElementById('tb-edit-key').value=entry.start;
+    document.getElementById('tb-title').value=entry.title;
+    document.getElementById('tb-category').value=entry.category;
+    tbPopulateTimeSelects(entry.start,entry.end);
+    document.getElementById('tb-delete-wrap').style.display='block';
+  }else{
+    document.getElementById('tb-modal-title').textContent='จองเวลา';
+    document.getElementById('tb-edit-key').value='';
+    document.getElementById('tb-title').value='';
+    document.getElementById('tb-category').value='deep';
+    const idx=TB_SLOTS.indexOf(time);
+    const defEnd = idx>=0 && idx+1<TB_SLOTS.length ? TB_SLOTS[idx+1] : '18:30';
+    tbPopulateTimeSelects(time, defEnd);
+    document.getElementById('tb-delete-wrap').style.display='none';
+  }
+  document.getElementById('modal-timebox').classList.add('open');
+  setTimeout(()=>document.getElementById('tb-title').focus(),100);
+}
+
+function tbSaveSlot(){
+  const title=document.getElementById('tb-title').value.trim();
+  if(!title){showToast('กรุณาระบุหัวข้อที่โฟกัส');return;}
+  const dateKey=document.getElementById('tb-date-key').value;
+  const person=document.getElementById('tb-person-key').value;
+  const start=document.getElementById('tb-start-time').value;
+  const end=document.getElementById('tb-end-time').value;
+  const category=document.getElementById('tb-category').value;
+  const editKey=document.getElementById('tb-edit-key').value;
+
+  if(tbMinutes(end)<=tbMinutes(start)){showToast('เวลาสิ้นสุดต้องอยู่หลังเวลาเริ่ม');return;}
+
+  if(!state.timebox)state.timebox={};
+  if(!state.timebox[dateKey])state.timebox[dateKey]={};
+  if(!state.timebox[dateKey][person])state.timebox[dateKey][person]=[];
+
+  let entries=state.timebox[dateKey][person];
+  if(editKey)entries=entries.filter(e=>e.start!==editKey);
+  entries=entries.filter(e=>!(tbMinutes(start)<tbMinutes(e.end)&&tbMinutes(end)>tbMinutes(e.start)));
+  entries.push({start,end,title,category});
+  entries.sort((a,b)=>tbMinutes(a.start)-tbMinutes(b.start));
+  state.timebox[dateKey][person]=entries;
+
+  save();
+  renderTimebox();
+  closeModal('modal-timebox');
+  showToast('บันทึกตารางเวลาแล้ว');
+}
+
+function tbDeleteSlot(){
+  const dateKey=document.getElementById('tb-date-key').value;
+  const person=document.getElementById('tb-person-key').value;
+  const editKey=document.getElementById('tb-edit-key').value;
+  if(state.timebox&&state.timebox[dateKey]&&state.timebox[dateKey][person]){
+    state.timebox[dateKey][person]=state.timebox[dateKey][person].filter(e=>e.start!==editKey);
+  }
+  save();
+  renderTimebox();
+  closeModal('modal-timebox');
+  showToast('ลบการจองแล้ว');
 }
 
 function showToast(msg){
